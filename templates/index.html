@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>NoTrace Chat</title>
+    <script>
+        if (localStorage.getItem('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    </script>
+    <style>
+        :root { 
+            --bg: #0f172a; --panel: #1e293b; --text: #f8fafc; --text-muted: #94a3b8; 
+            --primary: #3b82f6; --primary-hover: #2563eb; --border: #334155; 
+            --danger: #ef4444; --success: #10b981; --burn: #f97316; --warning: #eab308;
+        }
+        :root[data-theme="light"] {
+            --bg: #f8fafc; --panel: #ffffff; --text: #0f172a; --text-muted: #64748b; 
+            --border: #e2e8f0; --burn: #ea580c; --warning: #ca8a04;
+        }
+
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100dvh; overflow: hidden; padding-bottom: env(safe-area-inset-bottom); }
+        
+        #toastContainer { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast { background: var(--panel); border: 1px solid var(--border); color: var(--text); padding: 12px 20px; border-radius: 30px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideDown 0.3s forwards, fadeOut 0.3s forwards 2.7s; }
+        @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; } }
+        
+        #onboardModal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 8000; display: none; justify-content: center; align-items: center; padding: 20px; }
+        .onboard-box { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 30px; max-width: 400px; width: 100%; text-align: center; }
+        .onboard-input { width: 100%; padding: 15px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); outline: none; font-size: 20px; text-align: center; letter-spacing: 2px; margin: 15px 0; text-transform: lowercase; box-sizing: border-box; }
+        
+        .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border); transition: .3s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .sidebar { width: 300px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: 0.3s ease; z-index: 100; flex-shrink: 0; }
+        .sidebar.collapsed { width: 0; border: none; overflow: hidden; }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); }
+        .sidebar-header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        
+        .icon-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 5px; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: 0.2s;}
+        .icon-btn:hover { background: rgba(128,128,128,0.1); color: var(--text); }
+        .icon-btn svg { width: 22px; height: 22px; }
+        .close-sidebar-btn { display: none; }
+        
+        .add-friend-row { display: flex; gap: 8px; margin-top: 15px; }
+        .add-friend-row input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); outline: none; }
+        .add-friend-row button, .primary-btn { padding: 10px 15px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        
+        .friend-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 5px; }
+        .friend-item { padding: 15px; background: var(--bg); border: 1px solid var(--border); cursor: pointer; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .friend-item:hover, .friend-item.active { border-color: var(--primary); background: rgba(59, 130, 246, 0.1); }
+        .unread-badge { background: var(--danger); color: white; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 10px; display: none; }
+        .unread-badge.show { display: inline-block; }
+
+        .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; min-width: 0; }
+        .chat-header { padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--panel); display: flex; align-items: center; justify-content: space-between; height: 45px; flex-shrink: 0;}
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .header-actions { display: flex; align-items: center; gap: 5px; }
+        
+        .menu-btn-wrap { position: relative; display: flex; align-items: center; }
+        .global-badge { position: absolute; top: 0; right: 0; width: 10px; height: 10px; background: var(--danger); border-radius: 50%; display: none; }
+        
+        .header-info { display: flex; flex-direction: column; justify-content: center; }
+        .chat-title { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+        .status-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: transparent; border: 1px solid var(--text-muted); transition: 0.3s; }
+        .status-dot.online { background: var(--success); border-color: var(--success); }
+        .typing-ind { color: var(--primary); font-style: italic; opacity: 0; transition: opacity 0.2s; }
+
+        .messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .msg-wrapper { position: relative; display: flex; flex-direction: column; max-width: 85%; cursor: pointer; user-select: none; transition: 0.2s; }
+        .msg-wrapper.sent { align-self: flex-end; align-items: flex-end; }
+        .msg-wrapper.recv { align-self: flex-start; align-items: flex-start; }
+        
+        .select-mode .msg-wrapper { padding-left: 32px; }
+        .select-mode .msg-wrapper.sent { padding-left: 0; padding-right: 32px; }
+        
+        .select-checkbox { position: absolute; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--text-muted); display: none; pointer-events: none; transition: 0.2s; }
+        .select-mode .select-checkbox { display: block; }
+        .msg-wrapper.recv .select-checkbox { left: 0; }
+        .msg-wrapper.sent .select-checkbox { right: 0; }
+        .msg-wrapper.selected .select-checkbox { background: var(--primary); border-color: var(--primary); }
+        .msg-wrapper.selected .select-checkbox::after { content: '✓'; color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 14px; font-weight: bold; }
+
+        .msg { padding: 12px 16px; border-radius: 12px; word-break: break-word; font-size: 15px; line-height: 1.4; position: relative; overflow: hidden; transition: 0.3s; }
+        .msg.sent { background: var(--primary); border-bottom-right-radius: 4px; color: #fff;}
+        .msg.recv { background: var(--panel); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+        .msg.sys { background: transparent; border: 1px solid var(--warning); color: var(--warning); font-size: 13px; text-align: center; border-radius: 20px; align-self: center; margin: 10px 0;}
+        .msg.ghost-blur { filter: blur(6px) grayscale(0.6); opacity: 0.7; }
+        
+        .msg-meta { display: flex; align-items: center; gap: 5px; margin-top: 4px; }
+        .timestamp { font-size: 11px; color: var(--text-muted); }
+        .receipt { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+        
+        .burn-icon-small { width: 12px; height: 12px; color: var(--burn); }
+        .timer-text { font-family: monospace; font-size: 11px; color: var(--burn); font-weight: bold; background: rgba(234, 88, 12, 0.1); padding: 2px 4px; border-radius: 4px;}
+        
+        @keyframes dissolveBurn {
+            0% { filter: contrast(1) brightness(1); transform: scale(1); opacity: 1; }
+            20% { filter: contrast(1.5) brightness(1.2) sepia(1) hue-rotate(-30deg); transform: scale(1.02); opacity: 0.9; }
+            50% { filter: contrast(2) brightness(0.8) sepia(1) hue-rotate(-50deg) blur(2px); transform: translateY(-5px) scale(0.95); opacity: 0.5; }
+            100% { filter: blur(10px) grayscale(1); transform: translateY(-15px) scale(0.8); opacity: 0; }
+        }
+        .anim-burning { animation: dissolveBurn 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards !important; pointer-events: none; }
+
+        .input-area { padding: 15px; border-top: 1px solid var(--border); background: var(--panel); display: flex; gap: 10px; align-items: center; flex-shrink: 0;}
+        .input-wrapper { position: relative; flex: 1; display: flex; align-items: center; }
+        .input-wrapper input { width: 100%; padding: 12px 45px 12px 15px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); color: var(--text); outline: none; font-size: 15px; }
+        .input-wrapper .burn-toggle { position: absolute; right: 5px; padding: 8px; border-radius: 50%; color: var(--text-muted); }
+        .burn-toggle.active { color: var(--burn); background: rgba(234, 88, 12, 0.1); }
+        .send-btn { padding: 12px 20px; background: var(--primary); color: white; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; }
+
+        .select-action-bar { padding: 15px; border-top: 1px solid var(--border); background: var(--panel); display: none; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-muted); text-align: center; padding: 20px; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
+        .modal { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 25px; max-width: 400px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-height: 80vh; overflow-y: auto;}
+        .modal h3 { margin: 0 0 15px 0; display: flex; justify-content: space-between; align-items: center; }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--border); }
+        .privacy-box { background: rgba(234, 179, 8, 0.1); border: 1px solid var(--warning); padding: 15px; border-radius: 8px; font-size: 13px; line-height: 1.5; margin: 15px 0; color: var(--text); }
+        .btn-danger { background: var(--danger); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; }
+        .btn-secondary { background: var(--border); color: var(--text); border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px;}
+
+        @media (max-width: 768px) {
+            .sidebar { position: absolute; height: 100dvh; transform: translateX(-100%); }
+            .sidebar.mobile-open { transform: translateX(0); width: 85%; max-width: 350px; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
+            .close-sidebar-btn { display: block; }
+            .msg-wrapper { max-width: 90%; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="toastContainer"></div>
+
+<div id="onboardModal">
+    <div class="onboard-box">
+        <h2>Choose Your Identity</h2>
+        <p style="color: var(--text-muted); font-size: 14px;">Leave blank for a random burner ID.</p>
+        <input type="text" id="customIdInput" class="onboard-input" placeholder="e.g. ghost99" maxlength="12">
+        <div class="privacy-box" style="text-align: left; margin-bottom: 20px;">
+            ⚠️ <strong>Crucial Warning:</strong> If you clear your browser cache, this username will be permanently locked. No one can ever recover it.
+        </div>
+        <button class="primary-btn" style="width: 100%; padding: 15px; font-size: 16px;" onclick="claimIdentity()">Generate Keys & Connect</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="settingsModal">
+    <div class="modal">
+        <h3>Settings <button class="icon-btn" onclick="document.getElementById('settingsModal').style.display='none'"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg></button></h3>
+        <div class="setting-row">
+            <span>Theme</span>
+            <button class="icon-btn" onclick="toggleTheme()" style="background:var(--bg); border:1px solid var(--border);">
+                <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            </button>
+        </div>
+        <div class="setting-row">
+            <span>Send Read Receipts</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="toggleReceipts" onchange="updatePrivacy()">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="setting-row">
+            <span>Send Typing Indicator</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="toggleTyping" onchange="updatePrivacy()">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <button class="btn-secondary" onclick="document.getElementById('settingsModal').style.display='none'; document.getElementById('privacyPolicyModal').style.display='flex'">View Privacy Policy</button>
+        <button class="btn-danger" style="margin-top: 15px;" onclick="panicWipe()">PANIC WIPE</button>
+        <div style="font-size:11px; text-align:center; color:var(--text-muted); margin-top:8px;">Destroys identity and all local data instantly.</div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="privacyPolicyModal">
+    <div class="modal">
+        <h3>Privacy Policy <button class="icon-btn" onclick="document.getElementById('privacyPolicyModal').style.display='none'"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg></button></h3>
+        <div style="font-size: 14px; line-height: 1.6; color: var(--text-muted);">
+            <p><strong>Zero-Knowledge Architecture:</strong> NoTrace is built on the premise that the server should know nothing. We cannot read your messages, nor do we want to.</p>
+            <p><strong>1. End-to-End Encryption (E2EE):</strong> All text and files are encrypted in your browser using RSA-OAEP 2048-bit keys. The private key never leaves your device.</p>
+            <p><strong>2. No IP Logging:</strong> The server strictly suppresses all logging. We do not track, store, or log your IP address.</p>
+            <p><strong>3. Ephemeral Storage:</strong> If your friend is offline, the server holds the encrypted payload temporarily. The exact moment your friend connects and fetches the message, it is permanently purged from the server database.</p>
+            <p><strong>4. No Meta-Data Retention:</strong> We do not log timestamps, contact lists, or "who talked to whom" after a message is delivered. Your contacts and history live exclusively in your browser's local storage.</p>
+            <p><strong>5. Total Anonymity:</strong> We do not ask for emails, phone numbers, or passwords. Your identity is a pseudonymous ID tied to a cryptographic hash.</p>
+        </div>
+    </div>
+</div>
+
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="sidebar-header-top">
+            <h2 style="margin:0;">NoTrace</h2>
+            <div style="display:flex; gap:5px;">
+                <button class="icon-btn" onclick="document.getElementById('settingsModal').style.display='flex'">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+                <button class="icon-btn close-sidebar-btn" onclick="toggleSidebar()">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+        </div>
+        <div style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 5px;">
+            Your ID: <strong id="myId" style="color:var(--text); font-size: 16px; letter-spacing: 1px;"></strong>
+            <button class="icon-btn" style="padding: 2px;" onclick="copyId()" title="Copy ID">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+        </div>
+        <div class="add-friend-row">
+            <input type="text" id="addFriendInput" placeholder="Friend ID" maxlength="12" style="text-transform: lowercase;">
+            <button onclick="requestAddFriend()">Add</button>
+        </div>
+    </div>
+    <div class="friend-list" id="friendList"></div>
+</div>
+
+<div class="chat-area">
+    <div class="chat-header">
+        <div class="header-left">
+            <div class="menu-btn-wrap">
+                <button class="icon-btn" onclick="toggleSidebar()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <div class="global-badge" id="globalBadge"></div>
+            </div>
+            <div class="header-info" id="activeChatInfo" style="display:none;">
+                <div class="chat-title" id="chatTitleName"></div>
+                <div class="status-row">
+                    <div id="chatStatusDot" class="status-dot"></div>
+                    <span id="chatStatusText">Offline</span>
+                    <span id="typingInd" class="typing-ind">typing...</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-actions" id="headerActions" style="display:none;">
+            <button class="icon-btn" id="selectMsgBtn" onclick="toggleSelectMode()" title="Select Messages">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+            </button>
+            <button class="icon-btn" id="deleteChatBtn" style="color:var(--danger);" onclick="deleteWholeChat()" title="Wipe Chat">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+        </div>
+    </div>
+    
+    <div class="empty-state" id="emptyState">Open the menu and add a friend to start chatting.</div>
+    <div class="messages" id="messages" style="display:none;"></div>
+    
+    <div class="input-area" id="inputArea" style="display:none;">
+        <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,.pdf,.txt,.zip">
+        <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Send File (<5MB)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+        
+        <div class="input-wrapper">
+            <input type="text" id="msgInput" placeholder="Message..." onkeypress="if(event.key === 'Enter') sendMsg()" oninput="emitTyping()">
+            <button class="icon-btn burn-toggle" id="burnToggleBtn" onclick="toggleBurnMode()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"></path></svg>
+            </button>
+        </div>
+
+        <button class="icon-btn" id="ghostToggleBtn" onclick="toggleGhostMode()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"></path></svg>
+        </button>
+        
+        <button class="send-btn" onclick="sendMsg()">Send</button>
+    </div>
+
+    <div class="select-action-bar" id="selectActionBar">
+        <button class="icon-btn" onclick="toggleSelectMode()" style="color:var(--text); font-size:14px; padding: 10px;">Cancel</button>
+        <span id="selectCount" style="font-weight:bold; font-size:14px; color:var(--text);">0 Selected</span>
+        <button class="icon-btn" style="color:var(--danger); padding: 10px;" onclick="deleteSelectedMessages()" title="Delete Selected">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+    const socket = io();
+    let myId, myToken, myKeys, activeChat = null;
+    let friendKeys = {}; 
+    let typingTimer;
+    let burnMode = false;
+    let ghostMode = false;
+    let isSelectMode = false;
+    let selectedMsgs = new Set();
+    let ghostRevealed = new Set();
+    
+    let userPrivacy = JSON.parse(localStorage.getItem('nt_privacy') || '{"readReceipts":true, "typingInd":true}');
+    document.getElementById('toggleReceipts').checked = userPrivacy.readReceipts;
+    document.getElementById('toggleTyping').checked = userPrivacy.typingInd;
+
+    const buf2b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+    const b642buf = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer;
+    const encText = txt => new TextEncoder().encode(txt);
+    const decText = buf => new TextDecoder().decode(buf);
+    const randStr = len => Array.from(crypto.getRandomValues(new Uint8Array(len))).map(b=>b.toString(36).padStart(2,'0')).join('').substring(0,len);
+    const formatTime = ts => new Date(ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+    function showToast(msg, type="info") {
+        const container = document.getElementById('toastContainer');
+        const t = document.createElement('div');
+        t.className = 'toast';
+        t.innerText = msg;
+        if(type === 'error') t.style.border = '1px solid var(--danger)';
+        if(type === 'success') t.style.border = '1px solid var(--success)';
+        container.appendChild(t);
+        setTimeout(() => t.remove(), 3000);
+    }
+
+    function copyId() {
+        navigator.clipboard.writeText(myId).then(() => showToast("ID Copied to clipboard!", "success"));
+    }
+
+    function updatePrivacy() {
+        userPrivacy.readReceipts = document.getElementById('toggleReceipts').checked;
+        userPrivacy.typingInd = document.getElementById('toggleTyping').checked;
+        localStorage.setItem('nt_privacy', JSON.stringify(userPrivacy));
+        if(activeChat) renderMessages(activeChat); 
+        showToast("Privacy settings updated.");
+    }
+
+    window.addEventListener('focus', () => {
+        if (activeChat && userPrivacy.readReceipts) socket.emit('mark_seen', { sender_id: myId, target_id: activeChat });
+    });
+
+    socket.on('connect', () => {
+        if (myId && myToken && myKeys) {
+            socket.emit('register', { public_id: myId, private_token: myToken, public_key: myKeys.pub });
+            setTimeout(() => socket.emit('fetch_offline', { public_id: myId, private_token: myToken }), 500);
+        }
+    });
+
+    async function initIdentity() {
+        myId = localStorage.getItem('nt_id'); 
+        myToken = localStorage.getItem('nt_token');
+        const storedKeys = localStorage.getItem('nt_keys');
+
+        if (!myId || !storedKeys) {
+            document.getElementById('onboardModal').style.display = 'flex';
+        } else { 
+            myKeys = JSON.parse(storedKeys); 
+            finalizeInit();
+        }
+    }
+
+    function claimIdentity() {
+        const inputVal = document.getElementById('customIdInput').value.trim().toLowerCase();
+        if (inputVal === '') {
+            finalizeKeyGen(randStr(6));
+        } else {
+            if(inputVal.length < 3 || inputVal.length > 12 || !/^[a-z0-9]+$/.test(inputVal)) {
+                return showToast("ID must be 3-12 letters/numbers only.", "error");
+            }
+            socket.emit('check_availability', { desired_id: inputVal });
+        }
+    }
+
+    socket.on('availability_response', data => {
+        if (!data.available) return showToast(`ID '${data.id}' is already taken.`, "error");
+        finalizeKeyGen(data.id);
+    });
+
+    async function finalizeKeyGen(idStr) {
+        myId = idStr; 
+        myToken = randStr(64);
+        const keyPair = await crypto.subtle.generateKey({name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1,0,1]), hash: "SHA-256"}, true, ["encrypt", "decrypt"]);
+        myKeys = { pub: await crypto.subtle.exportKey("jwk", keyPair.publicKey), priv: await crypto.subtle.exportKey("jwk", keyPair.privateKey) };
+        localStorage.setItem('nt_id', myId); localStorage.setItem('nt_token', myToken); localStorage.setItem('nt_keys', JSON.stringify(myKeys));
+        document.getElementById('onboardModal').style.display = 'none';
+        finalizeInit();
+    }
+
+    function finalizeInit() {
+        document.getElementById('myId').innerText = myId;
+        if (socket.connected) {
+            socket.emit('register', { public_id: myId, private_token: myToken, public_key: myKeys.pub });
+            setTimeout(() => socket.emit('fetch_offline', { public_id: myId, private_token: myToken }), 500);
+        }
+        loadFriendList(); updateGlobalBadge();
+        const friends = JSON.parse(localStorage.getItem('nt_friends') || '[]');
+        if (friends.length > 0) {
+            let mostRecent = friends[0], maxTs = 0;
+            friends.forEach(f => {
+                const hist = JSON.parse(localStorage.getItem('nt_chat_' + f) || '[]');
+                if (hist.length > 0 && hist[hist.length-1].timestamp > maxTs) { maxTs = hist[hist.length-1].timestamp; mostRecent = f; }
+            });
+            openChat(mostRecent);
+            if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('mobile-open');
+        } else {
+            if (window.innerWidth <= 768) document.getElementById('sidebar').classList.add('mobile-open');
+        }
+    }
+
+    function toggleTheme() {
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        document.documentElement.setAttribute('data-theme', isLight ? 'dark' : 'light');
+        localStorage.setItem('theme', isLight ? 'dark' : 'light');
+        updateThemeIcon();
+    }
+    
+    function updateThemeIcon() {
+        const svg = document.getElementById('themeIcon');
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        svg.innerHTML = isLight 
+            ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>' 
+            : '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+    }
+    updateThemeIcon();
+
+    function toggleBurnMode() {
+        burnMode = !burnMode;
+        document.getElementById('burnToggleBtn').classList.toggle('active', burnMode);
+    }
+
+    function toggleGhostMode() {
+        ghostMode = !ghostMode;
+        document.getElementById('ghostToggleBtn').style.color = ghostMode ? 'var(--primary)' : 'var(--text-muted)';
+        ghostRevealed.clear(); renderMessages(activeChat);
+    }
+
+    function toggleSelectMode() {
+        isSelectMode = !isSelectMode;
+        selectedMsgs.clear();
+        document.getElementById('inputArea').style.display = isSelectMode ? 'none' : 'flex';
+        document.getElementById('selectActionBar').style.display = isSelectMode ? 'flex' : 'none';
+        document.getElementById('messages').classList.toggle('select-mode', isSelectMode);
+        document.getElementById('selectCount').innerText = '0 Selected';
+        renderMessages(activeChat);
+    }
+
+    function handleMsgClick(msgId, isSent) {
+        if (isSelectMode) {
+            if (selectedMsgs.has(msgId)) selectedMsgs.delete(msgId); else selectedMsgs.add(msgId);
+            document.getElementById('selectCount').innerText = `${selectedMsgs.size} Selected`;
+            renderMessages(activeChat);
+        } else if (ghostMode) {
+            if (ghostRevealed.has(msgId)) ghostRevealed.delete(msgId); else ghostRevealed.add(msgId);
+            renderMessages(activeChat);
+        }
+    }
+
+    function handleMsgDblClick(msgId, isSent) {
+        if (isSelectMode) return;
+        if (isSent) { if(confirm("Unsend this message for everyone?")) execDelete(msgId, true); } 
+        else { if(confirm("Delete this message locally?")) execDelete(msgId, false); }
+    }
+
+    function execDelete(msgId, remote) {
+        let history = JSON.parse(localStorage.getItem('nt_chat_' + activeChat) || '[]');
+        history = history.filter(m => m.id !== msgId);
+        localStorage.setItem('nt_chat_' + activeChat, JSON.stringify(history));
+        if (remote) socket.emit('delete_message', { sender_id: myId, token: myToken, target_id: activeChat, msg_id: msgId });
+        renderMessages(activeChat);
+    }
+
+    function deleteSelectedMessages() {
+        if(selectedMsgs.size === 0) return toggleSelectMode();
+        if(!confirm(`Delete ${selectedMsgs.size} message(s)?\n(Your sent messages will be unsent)`)) return;
+        let history = JSON.parse(localStorage.getItem('nt_chat_' + activeChat) || '[]');
+        let remaining = [];
+        history.forEach(m => {
+            if (selectedMsgs.has(m.id)) { if (m.type === 'sent') socket.emit('delete_message', { sender_id: myId, token: myToken, target_id: activeChat, msg_id: m.id }); } 
+            else { remaining.push(m); }
+        });
+        localStorage.setItem('nt_chat_' + activeChat, JSON.stringify(remaining));
+        toggleSelectMode();
+    }
+
+    function panicWipe() {
+        if(!confirm("WARNING: This permanently destroys your identity from the server and all local data. Proceed?")) return;
+        socket.emit('destroy_identity', { public_id: myId, private_token: myToken });
+        setTimeout(() => { localStorage.clear(); location.reload(); }, 100);
+    }
+
+    function deleteWholeChat() {
+        if(!confirm(`Wipe entire chat with ${activeChat}? This cannot be undone.`)) return;
+        localStorage.removeItem('nt_chat_' + activeChat);
+        let friends = JSON.parse(localStorage.getItem('nt_friends')||'[]');
+        friends = friends.filter(f => f !== activeChat);
+        localStorage.setItem('nt_friends', JSON.stringify(friends));
+        location.reload();
+    }
+
+    socket.on('remote_delete', data => {
+        let history = JSON.parse(localStorage.getItem('nt_chat_' + data.sender_id) || '[]');
+        const originalLength = history.length;
+        history = history.filter(m => m.id !== data.msg_id);
+        if (history.length !== originalLength) {
+            localStorage.setItem('nt_chat_' + data.sender_id, JSON.stringify(history));
+            if (activeChat === data.sender_id) renderMessages(data.sender_id);
+        }
+    });
+
+    setInterval(() => {
+        if(!activeChat) return;
+        let history = JSON.parse(localStorage.getItem('nt_chat_' + activeChat) || '[]');
+        let changed = false; let now = Date.now();
+        history = history.filter(m => {
+            if(m.burn && m.status === 'seen') {
+                if(!m.seenAt) { m.seenAt = now; changed = true; }
+                else {
+                    let timeLeft = Math.ceil(m.burnTimeout - ((now - m.seenAt) / 1000));
+                    if(timeLeft <= 0) {
+                        const el = document.getElementById(`wrap-${m.id}`);
+                        if(el && !el.classList.contains('anim-burning')) {
+                            el.classList.add('anim-burning');
+                            setTimeout(() => {
+                                let h = JSON.parse(localStorage.getItem('nt_chat_' + activeChat) || '[]');
+                                localStorage.setItem('nt_chat_' + activeChat, JSON.stringify(h.filter(x => x.id !== m.id)));
+                                renderMessages(activeChat);
+                            }, 750); 
+                        }
+                        return true; 
+                    } else {
+                        const tEl = document.getElementById(`timer-${m.id}`);
+                        if(tEl) tEl.innerText = `[00:${timeLeft.toString().padStart(2, '0')}]`;
+                    }
+                }
+            }
+            return true;
+        });
+        if(changed) localStorage.setItem('nt_chat_' + activeChat, JSON.stringify(history));
+    }, 1000);
+
+    function toggleSidebar() {
+        const sb = document.getElementById('sidebar');
+        if (window.innerWidth <= 768) sb.classList.toggle('mobile-open');
+        else sb.classList.toggle('collapsed');
+    }
+
+    function playDing() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator(); const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.5);
+            osc.start(); osc.stop(ctx.currentTime + 0.5);
+        } catch(e) {}
+    }
+
+    function updateGlobalBadge() {
+        const unread = JSON.parse(localStorage.getItem('nt_unread') || '{}');
+        const total = Object.values(unread).reduce((a, b) => a + b, 0);
+        document.getElementById('globalBadge').style.display = total > 0 ? 'block' : 'none';
+    }
+
+    async function encryptMsg(text, pubJwk) {
+        const key = await crypto.subtle.importKey("jwk", pubJwk, {name: "RSA-OAEP", hash: "SHA-256"}, false, ["encrypt"]);
+        const enc = await crypto.subtle.encrypt({name: "RSA-OAEP"}, key, encText(text));
+        return buf2b64(enc);
+    }
+
+    async function decryptMsg(b64) {
+        const key = await crypto.subtle.importKey("jwk", myKeys.priv, {name: "RSA-OAEP", hash: "SHA-256"}, false, ["decrypt"]);
+        const dec = await crypto.subtle.decrypt({name: "RSA-OAEP"}, key, b642buf(b64));
+        return decText(dec);
+    }
+
+    function saveHistory(target, msgObj) {
+        let history = JSON.parse(localStorage.getItem('nt_chat_' + target) || '[]');
+        history.push(msgObj);
+        localStorage.setItem('nt_chat_' + target, JSON.stringify(history));
+        if (activeChat === target) renderMessages(target);
+    }
+
+    function updateMessageStatus(target, newStatus) {
+        let history = JSON.parse(localStorage.getItem('nt_chat_' + target) || '[]');
+        let changed = false;
+        history.forEach(m => {
+            if (m.type === 'sent') {
+                if (newStatus === 'seen' && m.status !== 'seen') { m.status = 'seen'; changed = true; }
+                else if (newStatus === 'delivered' && m.status === 'sent') { m.status = 'delivered'; changed = true; }
+            }
+        });
+        if (changed) { localStorage.setItem('nt_chat_' + target, JSON.stringify(history)); if (activeChat === target) renderMessages(target); }
+    }
+
+    function loadFriendList() {
+        const friends = JSON.parse(localStorage.getItem('nt_friends') || '[]');
+        const unread = JSON.parse(localStorage.getItem('nt_unread') || '{}');
+        const fl = document.getElementById('friendList');
+        fl.innerHTML = '';
+        
+        friends.forEach(f => {
+            const div = document.createElement('div');
+            div.className = `friend-item ${activeChat === f ? 'active' : ''}`;
+            const count = unread[f] || 0;
+            div.innerHTML = `<strong>${f}</strong> <span class="unread-badge ${count > 0 ? 'show' : ''}">${count}</span>`;
+            div.onclick = () => { if (window.innerWidth <= 768) toggleSidebar(); openChat(f); };
+            fl.appendChild(div);
+            if (!friendKeys[f]) socket.emit('get_key', { target_id: f });
+        });
+    }
+
+    function requestAddFriend() {
+        const target = document.getElementById('addFriendInput').value.trim().toLowerCase();
+        if (target.length < 3 || target.length > 12 || target === myId) return showToast("Invalid ID length or self-add.", "error");
+        socket.emit('check_user', { target_id: target });
+    }
+
+    socket.on('user_exists', data => {
+        if (!data.exists) return showToast("User ID not found online!", "error");
+        let friends = JSON.parse(localStorage.getItem('nt_friends') || '[]');
+        if (!friends.includes(data.target_id)) { friends.push(data.target_id); localStorage.setItem('nt_friends', JSON.stringify(friends)); }
+        document.getElementById('addFriendInput').value = '';
+        loadFriendList(); openChat(data.target_id);
+    });
+
+    function forceAddFriend(sender) {
+        let friends = JSON.parse(localStorage.getItem('nt_friends') || '[]');
+        if (!friends.includes(sender)) {
+            friends.push(sender); localStorage.setItem('nt_friends', JSON.stringify(friends));
+            socket.emit('get_key', { target_id: sender }); loadFriendList();
+        }
+    }
+
+    function openChat(target) {
+        activeChat = target;
+        let unread = JSON.parse(localStorage.getItem('nt_unread') || '{}');
+        unread[target] = 0; localStorage.setItem('nt_unread', JSON.stringify(unread));
+        if(isSelectMode) toggleSelectMode();
+        
+        loadFriendList(); updateGlobalBadge();
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('activeChatInfo').style.display = 'flex';
+        document.getElementById('headerActions').style.display = 'flex';
+        document.getElementById('chatTitleName').innerText = target;
+        document.getElementById('messages').style.display = 'flex';
+        document.getElementById('inputArea').style.display = 'flex';
+        
+        socket.emit('get_status', { target_id: target });
+        if(userPrivacy.readReceipts) socket.emit('mark_seen', { sender_id: myId, target_id: target });
+        renderMessages(target);
+    }
+
+    function renderMessages(target) {
+        const history = JSON.parse(localStorage.getItem('nt_chat_' + target) || '[]');
+        const box = document.getElementById('messages');
+        box.innerHTML = '';
+        
+        let lastSeenIdx = -1; let lastDeliveredIdx = -1;
+        
+        if (userPrivacy.readReceipts) {
+            for(let i = history.length - 1; i >= 0; i--) {
+                if(history[i].type === 'sent') {
+                    if(history[i].status === 'seen' && lastSeenIdx === -1) lastSeenIdx = i;
+                    if((history[i].status === 'delivered' || history[i].status === 'sent') && lastDeliveredIdx === -1) lastDeliveredIdx = i;
+                }
+            }
+        }
+
+        history.forEach((m, idx) => {
+            const isSent = m.type === 'sent';
+            const wrap = document.createElement('div');
+            
+            if (m.type === 'sys') {
+                wrap.className = `msg sys`;
+                wrap.innerText = m.text;
+                box.appendChild(wrap);
+                return;
+            }
+
+            wrap.className = `msg-wrapper ${m.type} ${selectedMsgs.has(m.id) ? 'selected' : ''}`;
+            wrap.id = `wrap-${m.id}`;
+            wrap.onclick = () => handleMsgClick(m.id, isSent);
+            wrap.ondblclick = () => handleMsgDblClick(m.id, isSent);
+            
+            let receiptHtml = '';
+            if (isSent && userPrivacy.readReceipts) {
+                if (idx === lastSeenIdx) receiptHtml = '<span class="receipt">Seen</span>';
+                else if (idx === lastDeliveredIdx && m.status !== 'seen') receiptHtml = `<span class="receipt">${m.status === 'delivered' ? 'Delivered' : ''}</span>`;
+            }
+
+            let timerHtml = '';
+            if (m.burn) {
+                let txt = m.status === 'seen' ? '[00:--]' : 'Burn';
+                timerHtml = `<span class="timer-text" id="timer-${m.id}">${txt}</span>`;
+            }
+
+            let contentHtml = m.text;
+            if (m.isFile) {
+                if(m.text.startsWith('data:image/')) {
+                    contentHtml = `<img src="${m.text}" style="max-width:100%; border-radius:8px; margin-bottom:5px;"><br><small>${m.fileName}</small>`;
+                } else {
+                    contentHtml = `<a href="${m.text}" download="${m.fileName}" style="color:inherit; text-decoration:underline; font-weight:bold;">📄 ${m.fileName}</a>`;
+                }
+            }
+
+            let blurClass = (ghostMode && !ghostRevealed.has(m.id)) ? 'ghost-blur' : '';
+
+            wrap.innerHTML = `
+                <div class="select-checkbox"></div>
+                <div class="msg ${m.type} ${blurClass}" title="Double tap for options">${contentHtml}</div>
+                <div class="msg-meta">
+                    <span class="timestamp">${formatTime(m.timestamp)}</span>
+                    ${timerHtml}
+                    ${receiptHtml}
+                </div>`;
+            box.appendChild(wrap);
+        });
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function emitTyping() { 
+        if (!activeChat || !userPrivacy.typingInd) return; 
+        socket.emit('typing', { sender_id: myId, target_id: activeChat }); 
+    }
+
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if(!file || !activeChat) return;
+        if(file.size > 5 * 1024 * 1024) return showToast("File > 5MB! Use OpenShare.", "error");
+        
+        if (!friendKeys[activeChat]) {
+            socket.emit('get_key', { target_id: activeChat });
+            return showToast("Key missing. Try again in 2 seconds.", "error");
+        }
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const dataUrl = e.target.result;
+            const ts = Date.now();
+            const msgId = randStr(10);
+            
+            const msgObj = { id: msgId, type: 'sent', text: dataUrl, isFile: true, fileName: file.name, timestamp: ts, status: 'sent', burn: burnMode, burnTimeout: 60 };
+            saveHistory(activeChat, msgObj);
+            
+            try {
+                const ciphertext = await encryptMsg(dataUrl, friendKeys[activeChat]);
+                socket.emit('send_message', { sender_id: myId, token: myToken, target_id: activeChat, ciphertext: ciphertext, timestamp: ts, msg_id: msgId, burn: burnMode, burnTimeout: 60, isFile: true, fileName: file.name });
+            } catch (err) { showToast("Failed to encrypt.", "error"); socket.emit('get_key', { target_id: activeChat }); }
+            if(burnMode) toggleBurnMode();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async function sendMsg() {
+        const inp = document.getElementById('msgInput');
+        const text = inp.value.trim();
+        if (!text || !activeChat) return;
+        
+        if (!friendKeys[activeChat]) {
+            socket.emit('get_key', { target_id: activeChat });
+            return showToast("Key missing. Establishing secure tunnel...", "info");
+        }
+
+        inp.value = '';
+        const ts = Date.now();
+        const msgId = randStr(10);
+        
+        const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
+        let bTime = 60;
+        if (wordCount > 200) bTime = 60 + Math.ceil((wordCount % 250)) * 60; 
+
+        const msgObj = { id: msgId, type: 'sent', text: text, timestamp: ts, status: 'sent', burn: burnMode, burnTimeout: bTime };
+        saveHistory(activeChat, msgObj);
+        
+        try {
+            const ciphertext = await encryptMsg(text, friendKeys[activeChat]);
+            socket.emit('send_message', { sender_id: myId, token: myToken, target_id: activeChat, ciphertext: ciphertext, timestamp: ts, msg_id: msgId, burn: burnMode, burnTimeout: bTime });
+        } catch (err) {
+            showToast("Encryption failed. Refreshing keys...", "error");
+            socket.emit('get_key', { target_id: activeChat });
+        }
+        
+        if(burnMode) toggleBurnMode();
+    }
+
+    socket.on('key_response', data => { friendKeys[data.target_id] = data.public_key; });
+    
+    socket.on('status_update', data => {
+        if (data.id === activeChat) {
+            const dot = document.getElementById('chatStatusDot'); const txt = document.getElementById('chatStatusText');
+            if (data.status === 'online') { dot.classList.add('online'); txt.innerText = 'Online'; }
+            else { dot.classList.remove('online'); txt.innerText = 'Offline'; }
+        }
+    });
+
+    socket.on('is_typing', data => {
+        if (data.sender_id === activeChat && userPrivacy.typingInd) {
+            const ind = document.getElementById('typingInd');
+            ind.style.opacity = '1'; clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => ind.style.opacity = '0', 2000);
+        }
+    });
+
+    socket.on('chat_delivered', data => updateMessageStatus(data.by, 'delivered'));
+    socket.on('chat_seen', data => updateMessageStatus(data.by, 'seen'));
+
+    async function processIncoming(sender, payload) {
+        if(payload.is_delete) return;
+        forceAddFriend(sender);
+        try {
+            const plaintext = await decryptMsg(payload.ciphertext);
+            const msgObj = { id: payload.msg_id, type: 'recv', text: plaintext, timestamp: payload.timestamp, status: 'seen', burn: payload.burn, burnTimeout: payload.burnTimeout, isFile: payload.isFile, fileName: payload.fileName };
+            saveHistory(sender, msgObj);
+            
+            socket.emit('msg_delivered', { sender_id: myId, target_id: sender });
+            
+            if (activeChat === sender && userPrivacy.readReceipts) {
+                socket.emit('mark_seen', { sender_id: myId, target_id: sender });
+            } else if (activeChat !== sender) {
+                playDing();
+                let unread = JSON.parse(localStorage.getItem('nt_unread') || '{}');
+                unread[sender] = (unread[sender] || 0) + 1;
+                localStorage.setItem('nt_unread', JSON.stringify(unread));
+                loadFriendList(); updateGlobalBadge();
+            }
+        } catch(e) {}
+    }
+
+    socket.on('receive_message', data => processIncoming(data.sender_id, data));
+    socket.on('receive_offline', async msgs => { 
+        let successfullyProcessedIds = [];
+        for (let m of msgs) {
+            if(m.is_delete) {
+                let history = JSON.parse(localStorage.getItem('nt_chat_' + m.sender_id) || '[]');
+                history = history.filter(x => x.id !== m.msg_id);
+                localStorage.setItem('nt_chat_' + m.sender_id, JSON.stringify(history));
+                if (activeChat === m.sender_id) renderMessages(m.sender_id);
+                successfullyProcessedIds.push(m.msg_id); 
+            } else { 
+                await processIncoming(m.sender_id, m); 
+                successfullyProcessedIds.push(m.msg_id);
+            }
+        }
+        if (successfullyProcessedIds.length > 0) {
+            socket.emit('ack_offline', { public_id: myId, private_token: myToken, msg_ids: successfullyProcessedIds });
+        }
+    });
+
+    initIdentity();
+</script>
+</body>
+</html>
