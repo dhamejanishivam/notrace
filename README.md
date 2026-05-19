@@ -1,6 +1,6 @@
 # NoTrace Chat
 
-**Live Demo:** [chat.shivamdhamejani.in](https://chat.shivamdhamejani.in)
+**Live at:** [chat.shivamdhamejani.in](https://chat.shivamdhamejani.in)
 
 NoTrace is a zero-knowledge, browser-based, purely ephemeral E2EE (End-to-End Encrypted) chat application. It is designed with a paranoid architecture where the server acts strictly as a blind relay and holds zero metadata about its users.
 
