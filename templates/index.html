@@ -90,7 +90,16 @@
         .msg.sent { background: var(--primary); border-bottom-right-radius: 4px; color: #fff;}
         .msg.recv { background: var(--panel); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
         .msg.sys { background: transparent; border: 1px solid var(--warning); color: var(--warning); font-size: 13px; text-align: center; border-radius: 20px; align-self: center; margin: 10px 0;}
-        .msg.ghost-blur { filter: blur(6px) grayscale(0.6); opacity: 0.7; }
+        
+        /* Updated Ghost Blur for Light & Dark Mode with Hover Support */
+        .msg.ghost-blur { filter: blur(6px) grayscale(0.4); opacity: 0.6; transition: filter 0.2s, opacity 0.2s; }
+        :root[data-theme="light"] .msg.ghost-blur { filter: blur(5px); opacity: 0.35; }
+        
+        /* Automatically reveal on hover if using a mouse (PC/Laptop) */
+        @media (hover: hover) and (pointer: fine) {
+            .msg.ghost-blur:hover { filter: none !important; opacity: 1 !important; }
+            :root[data-theme="light"] .msg.ghost-blur:hover { filter: none !important; opacity: 1 !important; }
+        }
         
         .msg-meta { display: flex; align-items: center; gap: 5px; margin-top: 4px; }
         .timestamp { font-size: 11px; color: var(--text-muted); }
@@ -193,9 +202,26 @@
                 <span class="slider"></span>
             </label>
         </div>
+        
+        <button class="btn-secondary" onclick="document.getElementById('settingsModal').style.display='none'; document.getElementById('instructionsModal').style.display='flex'">Instructions</button>
         <button class="btn-secondary" onclick="document.getElementById('settingsModal').style.display='none'; document.getElementById('privacyPolicyModal').style.display='flex'">View Privacy Policy</button>
+        
         <button class="btn-danger" id="panicWipeTarget" style="margin-top: 15px;" onclick="panicWipe()">PANIC WIPE</button>
         <div style="font-size:11px; text-align:center; color:var(--text-muted); margin-top:8px;">Destroys identity and all local data instantly.</div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="instructionsModal">
+    <div class="modal">
+        <h3>How to use NoTrace <button class="icon-btn" onclick="document.getElementById('instructionsModal').style.display='none'"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg></button></h3>
+        <div style="font-size: 14px; line-height: 1.6; color: var(--text-muted); display: flex; flex-direction: column; gap: 15px;">
+            <div><strong>🔥 Burn Mode:</strong> Click the flame icon before sending. The message will start a countdown as soon as the recipient reads it, then permanently self-destruct from both devices. Timer scales with text length.</div>
+            <div><strong><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px; height:16px; vertical-align:text-bottom; display:inline-block;"><path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"></path></svg> Ghost Mode (Blur):</strong> Click the ghost icon to blur all messages on your screen. This protects you from shoulder-surfing. Tap any individual message to temporarily reveal it (if using a PC/laptop, simply hover over the message to reveal it, no need to click).</div>
+            <div><strong>🗑️ Double-Tap to Delete:</strong> Double-tap any message. If you sent it, it will be remotely "unsent" for everyone. If you received it, it will be deleted locally.</div>
+            <div><strong>Select & Delete:</strong> Click the checkmark icon at the top right of a chat to select multiple messages, then delete them all at once.</div>
+            <div><strong>Panic Wipe:</strong> Found at the bottom of settings. Clicking this immediately destroys your identity, deletes your keys, and wipes all history off the device and the server. Cannot be undone.</div>
+            <!-- <div><strong>📁 File Sharing:</strong> Click the paperclip to send files up to 5MB. They are encrypted end-to-end exactly like text messages.</div> -->
+        </div>
     </div>
 </div>
 
@@ -273,9 +299,12 @@
     
     <div class="input-area" id="inputArea" style="display:none;">
         <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,.pdf,.txt,.zip">
-        <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Send File (<5MB)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        </button>
+        
+
+        <!-- Commenting out / disabling the send file button for now -->
+        <!-- <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Send File (<5MB)"> -->
+            <!-- <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> -->
+        <!-- </button> -->
         
         <div class="input-wrapper" id="msgInputTarget">
             <input type="text" id="msgInput" placeholder="Message..." onkeypress="if(event.key === 'Enter') sendMsg()" oninput="emitTyping()">
@@ -326,7 +355,7 @@
     /* ==== TUTORIAL SYSTEM ==== */
     let tutStep = 0;
     const tutSteps = [
-        { target: '#onboardBoxTarget', title: 'Welcome to NoTrace!', text: 'Click Generate', pos: 'bottom' },
+        { target: '#onboardBoxTarget', title: 'Welcome to NoTrace!', text: 'Click generate for random username.', pos: 'top' },
         { target: '#addFriendTarget', title: 'Add a Friend', text: 'To start testing, enter the username "friend" here and click Add.', pos: 'bottom' },
         { target: '#msgInputTarget', title: 'Send a Message', text: 'Type a message here. Everything is End-to-End Encrypted so the server sees absolutely nothing.', pos: 'top' },
         { target: '#burnToggleBtn', title: 'Burn Mode', text: 'Click the flame to toggle Burn Mode. Messages will dissolve and self-destruct after they are read.', pos: 'top' },
