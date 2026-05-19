@@ -26,7 +26,7 @@
         @keyframes fadeOut { to { opacity: 0; } }
         
         #onboardModal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 8000; display: none; justify-content: center; align-items: center; padding: 20px; }
-        .onboard-box { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 30px; max-width: 400px; width: 100%; text-align: center; }
+        .onboard-box { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 30px; max-width: 400px; width: 100%; text-align: center; position: relative; }
         .onboard-input { width: 100%; padding: 15px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); outline: none; font-size: 20px; text-align: center; letter-spacing: 2px; margin: 15px 0; text-transform: lowercase; box-sizing: border-box; }
         
         .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
@@ -46,7 +46,7 @@
         .icon-btn svg { width: 22px; height: 22px; }
         .close-sidebar-btn { display: none; }
         
-        .add-friend-row { display: flex; gap: 8px; margin-top: 15px; }
+        .add-friend-row { display: flex; gap: 8px; margin-top: 15px; position: relative; }
         .add-friend-row input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); outline: none; }
         .add-friend-row button, .primary-btn { padding: 10px 15px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
         
@@ -125,6 +125,17 @@
         .btn-danger { background: var(--danger); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; }
         .btn-secondary { background: var(--border); color: var(--text); border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px;}
 
+        /* TUTORIAL SYSTEM UI */
+        .tut-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 9500; display: none; pointer-events: none; }
+        .tut-box { position: fixed; background: var(--primary); color: white; padding: 20px; border-radius: 12px; z-index: 9502; width: 280px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); transition: top 0.3s, left 0.3s; display: none; pointer-events: auto; }
+        .tut-box h4 { margin: 0 0 10px 0; font-size: 16px; font-weight: 700; }
+        .tut-box p { margin: 0 0 20px 0; font-size: 14px; line-height: 1.5; opacity: 0.95; }
+        .tut-buttons { display: flex; justify-content: space-between; align-items: center; }
+        .tut-btn-skip { background: transparent; border: none; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 13px; padding: 0; text-decoration: underline; }
+        .tut-btn-next { background: white; color: var(--primary); border: none; padding: 8px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;}
+        .tut-btn-next:hover { background: #f1f5f9; }
+        .tut-highlight { position: relative; z-index: 9501 !important; box-shadow: 0 0 0 4px var(--primary), 0 0 20px rgba(59,130,246,0.6) !important; background: var(--panel); border-radius: 8px; pointer-events: auto; transition: 0.2s;}
+
         @media (max-width: 768px) {
             .sidebar { position: absolute; height: 100dvh; transform: translateX(-100%); }
             .sidebar.mobile-open { transform: translateX(0); width: 85%; max-width: 350px; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
@@ -137,20 +148,30 @@
 
 <div id="toastContainer"></div>
 
+<div class="tut-overlay" id="tutOverlay"></div>
+<div class="tut-box" id="tutorialBox">
+    <h4 id="tutTitle">Title</h4>
+    <p id="tutText">Text</p>
+    <div class="tut-buttons">
+        <button class="tut-btn-skip" onclick="skipTut()">Skip Tour</button>
+        <button class="tut-btn-next" id="tutNextBtn" onclick="nextTut()">Next</button>
+    </div>
+</div>
+
 <div id="onboardModal">
-    <div class="onboard-box">
+    <div class="onboard-box" id="onboardBoxTarget">
         <h2>Choose Your Identity</h2>
         <p style="color: var(--text-muted); font-size: 14px;">Leave blank for a random burner ID.</p>
         <input type="text" id="customIdInput" class="onboard-input" placeholder="e.g. ghost99" maxlength="12">
         <div class="privacy-box" style="text-align: left; margin-bottom: 20px;">
-            ⚠️ <strong>Crucial Warning:</strong> If you clear your browser cache, this username will be permanently locked. No one can ever recover it.
+            <strong>Crucial Warning:</strong> If you clear your browser cache, this username will be permanently locked. No one can ever recover it.
         </div>
         <button class="primary-btn" style="width: 100%; padding: 15px; font-size: 16px;" onclick="claimIdentity()">Generate Keys & Connect</button>
     </div>
 </div>
 
 <div class="modal-overlay" id="settingsModal">
-    <div class="modal">
+    <div class="modal" id="settingsModalTarget">
         <h3>Settings <button class="icon-btn" onclick="document.getElementById('settingsModal').style.display='none'"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg></button></h3>
         <div class="setting-row">
             <span>Theme</span>
@@ -173,7 +194,7 @@
             </label>
         </div>
         <button class="btn-secondary" onclick="document.getElementById('settingsModal').style.display='none'; document.getElementById('privacyPolicyModal').style.display='flex'">View Privacy Policy</button>
-        <button class="btn-danger" style="margin-top: 15px;" onclick="panicWipe()">PANIC WIPE</button>
+        <button class="btn-danger" id="panicWipeTarget" style="margin-top: 15px;" onclick="panicWipe()">PANIC WIPE</button>
         <div style="font-size:11px; text-align:center; color:var(--text-muted); margin-top:8px;">Destroys identity and all local data instantly.</div>
     </div>
 </div>
@@ -197,7 +218,7 @@
         <div class="sidebar-header-top">
             <h2 style="margin:0;">NoTrace</h2>
             <div style="display:flex; gap:5px;">
-                <button class="icon-btn" onclick="document.getElementById('settingsModal').style.display='flex'">
+                <button class="icon-btn" id="settingsBtnTarget" onclick="document.getElementById('settingsModal').style.display='flex'; if(tutStep===5) nextTut();">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </button>
                 <button class="icon-btn close-sidebar-btn" onclick="toggleSidebar()">
@@ -211,7 +232,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             </button>
         </div>
-        <div class="add-friend-row">
+        <div class="add-friend-row" id="addFriendTarget">
             <input type="text" id="addFriendInput" placeholder="Friend ID" maxlength="12" style="text-transform: lowercase;">
             <button onclick="requestAddFriend()">Add</button>
         </div>
@@ -256,7 +277,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </button>
         
-        <div class="input-wrapper">
+        <div class="input-wrapper" id="msgInputTarget">
             <input type="text" id="msgInput" placeholder="Message..." onkeypress="if(event.key === 'Enter') sendMsg()" oninput="emitTyping()">
             <button class="icon-btn burn-toggle" id="burnToggleBtn" onclick="toggleBurnMode()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"></path></svg>
@@ -302,6 +323,97 @@
     const randStr = len => Array.from(crypto.getRandomValues(new Uint8Array(len))).map(b=>b.toString(36).padStart(2,'0')).join('').substring(0,len);
     const formatTime = ts => new Date(ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
+    /* ==== TUTORIAL SYSTEM ==== */
+    let tutStep = 0;
+    const tutSteps = [
+        { target: '#onboardBoxTarget', title: 'Welcome to NoTrace!', text: 'Click Generate', pos: 'bottom' },
+        { target: '#addFriendTarget', title: 'Add a Friend', text: 'To start testing, enter the username "friend" here and click Add.', pos: 'bottom' },
+        { target: '#msgInputTarget', title: 'Send a Message', text: 'Type a message here. Everything is End-to-End Encrypted so the server sees absolutely nothing.', pos: 'top' },
+        { target: '#burnToggleBtn', title: 'Burn Mode', text: 'Click the flame to toggle Burn Mode. Messages will dissolve and self-destruct after they are read.', pos: 'top' },
+        { target: '#ghostToggleBtn', title: 'Ghost Mode', text: 'Click the ghost to blur all messages. Great for hiding your screen from shoulder-surfers.', pos: 'top' },
+        { target: '#settingsBtnTarget', title: 'Privacy Settings', text: 'Click the settings menu to tweak read receipts or access the PANIC WIPE.', pos: 'bottom' },
+        { target: '#settingsModalTarget', title: 'Panic Wipe', text: 'If you ever need to vanish, clicking PANIC WIPE destroys your identity from the server and wipes your local device instantly.', pos: 'top' }
+    ];
+
+    function runTutorial() {
+        if(localStorage.getItem('nt_tut_done')) return;
+        document.getElementById('tutOverlay').style.display = 'block';
+        showTutStep(0);
+    }
+
+    function showTutStep(idx) {
+        document.querySelectorAll('.tut-highlight').forEach(el => el.classList.remove('tut-highlight'));
+        if(idx >= tutSteps.length) { endTutorial(); return; }
+        
+        const step = tutSteps[idx];
+        const el = document.querySelector(step.target);
+
+        if(!el || el.offsetParent === null) {
+            setTimeout(() => showTutStep(idx), 500);
+            return;
+        }
+
+        el.classList.add('tut-highlight');
+        const box = document.getElementById('tutorialBox');
+        document.getElementById('tutTitle').innerText = step.title;
+        document.getElementById('tutText').innerText = step.text;
+        
+        const nextBtn = document.getElementById('tutNextBtn');
+        if(idx === tutSteps.length - 1) {
+            nextBtn.innerText = "Done";
+        } else {
+            nextBtn.innerText = "Next";
+        }
+
+        box.style.display = 'block';
+
+        const rect = el.getBoundingClientRect();
+        
+        // Ensure horizontal stays strictly inside window
+        let leftPos = rect.left + (rect.width / 2) - (box.offsetWidth / 2);
+        if (leftPos < 10) leftPos = 10;
+        if (leftPos + box.offsetWidth > window.innerWidth - 10) leftPos = window.innerWidth - box.offsetWidth - 10;
+
+        // Calculate initial vertical based on pref
+        let topPos = step.pos === 'bottom' ? rect.bottom + 15 : rect.top - box.offsetHeight - 15;
+
+        // Strict clamp algorithm - If pushed off bottom, try above
+        if (topPos + box.offsetHeight > window.innerHeight - 10) {
+            topPos = rect.top - box.offsetHeight - 15;
+        }
+        
+        // If pushed off top, try below
+        if (topPos < 10) {
+            topPos = rect.bottom + 15;
+        }
+
+        // Absolute fail-safe if element is too massive (clamp to screen edges)
+        if (topPos + box.offsetHeight > window.innerHeight - 10) {
+            topPos = window.innerHeight - box.offsetHeight - 10;
+        }
+        if (topPos < 10) {
+            topPos = 10;
+        }
+
+        box.style.top = topPos + 'px';
+        box.style.left = leftPos + 'px';
+    }
+
+    function nextTut() { tutStep++; showTutStep(tutStep); }
+    
+    function skipTut() {
+        if(confirm("Are you sure you want to skip the onboarding tour?")) endTutorial();
+    }
+
+    function endTutorial() {
+        localStorage.setItem('nt_tut_done', 'true');
+        document.getElementById('tutOverlay').style.display = 'none';
+        document.getElementById('tutorialBox').style.display = 'none';
+        document.querySelectorAll('.tut-highlight').forEach(el => el.classList.remove('tut-highlight'));
+    }
+    /* ======================== */
+
+
     function showToast(msg, type="info") {
         const container = document.getElementById('toastContainer');
         const t = document.createElement('div');
@@ -343,6 +455,7 @@
 
         if (!myId || !storedKeys) {
             document.getElementById('onboardModal').style.display = 'flex';
+            runTutorial(); 
         } else { 
             myKeys = JSON.parse(storedKeys); 
             finalizeInit();
@@ -374,6 +487,8 @@
         localStorage.setItem('nt_id', myId); localStorage.setItem('nt_token', myToken); localStorage.setItem('nt_keys', JSON.stringify(myKeys));
         document.getElementById('onboardModal').style.display = 'none';
         finalizeInit();
+        
+        if(!localStorage.getItem('nt_tut_done') && tutStep === 0) { setTimeout(nextTut, 500); }
     }
 
     function finalizeInit() {
@@ -416,12 +531,14 @@
     function toggleBurnMode() {
         burnMode = !burnMode;
         document.getElementById('burnToggleBtn').classList.toggle('active', burnMode);
+        if(!localStorage.getItem('nt_tut_done') && tutStep === 3) setTimeout(nextTut, 300);
     }
 
     function toggleGhostMode() {
         ghostMode = !ghostMode;
         document.getElementById('ghostToggleBtn').style.color = ghostMode ? 'var(--primary)' : 'var(--text-muted)';
         ghostRevealed.clear(); renderMessages(activeChat);
+        if(!localStorage.getItem('nt_tut_done') && tutStep === 4) setTimeout(nextTut, 300);
     }
 
     function toggleSelectMode() {
@@ -474,6 +591,7 @@
 
     function panicWipe() {
         if(!confirm("WARNING: This permanently destroys your identity from the server and all local data. Proceed?")) return;
+        if(!localStorage.getItem('nt_tut_done')) endTutorial(); 
         socket.emit('destroy_identity', { public_id: myId, private_token: myToken });
         setTimeout(() => { localStorage.clear(); location.reload(); }, 100);
     }
@@ -639,6 +757,8 @@
         socket.emit('get_status', { target_id: target });
         if(userPrivacy.readReceipts) socket.emit('mark_seen', { sender_id: myId, target_id: target });
         renderMessages(target);
+        
+        if(!localStorage.getItem('nt_tut_done') && tutStep === 1) { setTimeout(nextTut, 600); }
     }
 
     function renderMessages(target) {
@@ -772,6 +892,8 @@
         }
         
         if(burnMode) toggleBurnMode();
+        
+        if(!localStorage.getItem('nt_tut_done') && tutStep === 2) { setTimeout(nextTut, 500); }
     }
 
     socket.on('key_response', data => { friendKeys[data.target_id] = data.public_key; });
