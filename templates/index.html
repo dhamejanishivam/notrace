@@ -53,6 +53,7 @@
         .friend-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 5px; }
         .friend-item { padding: 15px; background: var(--bg); border: 1px solid var(--border); cursor: pointer; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
         .friend-item:hover, .friend-item.active { border-color: var(--primary); background: rgba(59, 130, 246, 0.1); }
+        .friend-item.bot { border-color: var(--success); }
         .unread-badge { background: var(--danger); color: white; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 10px; display: none; }
         .unread-badge.show { display: inline-block; }
 
@@ -72,7 +73,9 @@
         .typing-ind { color: var(--primary); font-style: italic; opacity: 0; transition: opacity 0.2s; }
 
         .messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .msg-wrapper { position: relative; display: flex; flex-direction: column; max-width: 85%; cursor: pointer; user-select: none; transition: 0.2s; }
+        
+        /* Removed user-select: none; to allow text copying */
+        .msg-wrapper { position: relative; display: flex; flex-direction: column; max-width: 85%; cursor: pointer; transition: 0.2s; }
         .msg-wrapper.sent { align-self: flex-end; align-items: flex-end; }
         .msg-wrapper.recv { align-self: flex-start; align-items: flex-start; }
         
@@ -86,16 +89,15 @@
         .msg-wrapper.selected .select-checkbox { background: var(--primary); border-color: var(--primary); }
         .msg-wrapper.selected .select-checkbox::after { content: '✓'; color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 14px; font-weight: bold; }
 
-        .msg { padding: 12px 16px; border-radius: 12px; word-break: break-word; font-size: 15px; line-height: 1.4; position: relative; overflow: hidden; transition: 0.3s; }
+        /* Added white-space: pre-wrap; to support multi-line display */
+        .msg { padding: 12px 16px; border-radius: 12px; word-break: break-word; font-size: 15px; line-height: 1.4; position: relative; overflow: hidden; transition: 0.3s; white-space: pre-wrap; }
         .msg.sent { background: var(--primary); border-bottom-right-radius: 4px; color: #fff;}
         .msg.recv { background: var(--panel); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
         .msg.sys { background: transparent; border: 1px solid var(--warning); color: var(--warning); font-size: 13px; text-align: center; border-radius: 20px; align-self: center; margin: 10px 0;}
         
-        /* Updated Ghost Blur for Light & Dark Mode with Hover Support */
         .msg.ghost-blur { filter: blur(6px) grayscale(0.4); opacity: 0.6; transition: filter 0.2s, opacity 0.2s; }
         :root[data-theme="light"] .msg.ghost-blur { filter: blur(5px); opacity: 0.35; }
         
-        /* Automatically reveal on hover if using a mouse (PC/Laptop) */
         @media (hover: hover) and (pointer: fine) {
             .msg.ghost-blur:hover { filter: none !important; opacity: 1 !important; }
             :root[data-theme="light"] .msg.ghost-blur:hover { filter: none !important; opacity: 1 !important; }
@@ -118,10 +120,31 @@
 
         .input-area { padding: 15px; border-top: 1px solid var(--border); background: var(--panel); display: flex; gap: 10px; align-items: center; flex-shrink: 0;}
         .input-wrapper { position: relative; flex: 1; display: flex; align-items: center; }
-        .input-wrapper input { width: 100%; padding: 12px 45px 12px 15px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); color: var(--text); outline: none; font-size: 15px; }
-        .input-wrapper .burn-toggle { position: absolute; right: 5px; padding: 8px; border-radius: 50%; color: var(--text-muted); }
+        
+        /* Updated Input to Textarea for Multiline Support */
+        .input-wrapper textarea { 
+            width: 100%; 
+            padding: 12px 45px 12px 15px; 
+            border-radius: 20px; 
+            border: 1px solid var(--border); 
+            background: var(--bg); 
+            color: var(--text); 
+            outline: none; 
+            font-size: 15px; 
+            resize: none; 
+            font-family: inherit;
+            line-height: 20px;
+            min-height: 46px; 
+            max-height: 120px; 
+            overflow-y: auto;
+            box-sizing: border-box;
+            vertical-align: middle;
+            transition: border-radius 0.2s;
+        }
+
+        .input-wrapper .burn-toggle { position: absolute; right: 5px; bottom: 5px; padding: 8px; border-radius: 50%; color: var(--text-muted); }
         .burn-toggle.active { color: var(--burn); background: rgba(234, 88, 12, 0.1); }
-        .send-btn { padding: 12px 20px; background: var(--primary); color: white; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        .send-btn { padding: 12px 20px; background: var(--primary); color: white; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; align-self: flex-end; height: 46px; }
 
         .select-action-bar { padding: 15px; border-top: 1px solid var(--border); background: var(--panel); display: none; justify-content: space-between; align-items: center; flex-shrink: 0; }
         .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-muted); text-align: center; padding: 20px; }
@@ -133,17 +156,6 @@
         .privacy-box { background: rgba(234, 179, 8, 0.1); border: 1px solid var(--warning); padding: 15px; border-radius: 8px; font-size: 13px; line-height: 1.5; margin: 15px 0; color: var(--text); }
         .btn-danger { background: var(--danger); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; }
         .btn-secondary { background: var(--border); color: var(--text); border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px;}
-
-        /* TUTORIAL SYSTEM UI */
-        .tut-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 9500; display: none; pointer-events: none; }
-        .tut-box { position: fixed; background: var(--primary); color: white; padding: 20px; border-radius: 12px; z-index: 9502; width: 280px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); transition: top 0.3s, left 0.3s; display: none; pointer-events: auto; }
-        .tut-box h4 { margin: 0 0 10px 0; font-size: 16px; font-weight: 700; }
-        .tut-box p { margin: 0 0 20px 0; font-size: 14px; line-height: 1.5; opacity: 0.95; }
-        .tut-buttons { display: flex; justify-content: space-between; align-items: center; }
-        .tut-btn-skip { background: transparent; border: none; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 13px; padding: 0; text-decoration: underline; }
-        .tut-btn-next { background: white; color: var(--primary); border: none; padding: 8px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;}
-        .tut-btn-next:hover { background: #f1f5f9; }
-        .tut-highlight { position: relative; z-index: 9501 !important; box-shadow: 0 0 0 4px var(--primary), 0 0 20px rgba(59,130,246,0.6) !important; background: var(--panel); border-radius: 8px; pointer-events: auto; transition: 0.2s;}
 
         @media (max-width: 768px) {
             .sidebar { position: absolute; height: 100dvh; transform: translateX(-100%); }
@@ -157,20 +169,17 @@
 
 <div id="toastContainer"></div>
 
-<div class="tut-overlay" id="tutOverlay"></div>
-<div class="tut-box" id="tutorialBox">
-    <h4 id="tutTitle">Title</h4>
-    <p id="tutText">Text</p>
-    <div class="tut-buttons">
-        <button class="tut-btn-skip" onclick="skipTut()">Skip Tour</button>
-        <button class="tut-btn-next" id="tutNextBtn" onclick="nextTut()">Next</button>
-    </div>
-</div>
 
 <div id="onboardModal">
     <div class="onboard-box" id="onboardBoxTarget">
-        <h2>Choose Your Identity</h2>
-        <p style="color: var(--text-muted); font-size: 14px;">Leave blank for a random burner ID.</p>
+        <h2 style="margin-top:0; color:var(--primary);">NoTrace</h2>
+        <p style="color: var(--text); font-size: 15px; line-height: 1.5; margin-bottom: 10px;">
+            A purely anonymous, end-to-end encrypted chat.<br>
+            No phone number or email id needed or any kind of identity is needed.<br>
+        </p>
+        <hr style="border: 0; border-bottom: 1px solid var(--border); margin: 20px 0;">
+        <h3 style="margin-bottom: 5px;">Choose Your Identity</h3>
+        <p style="color: var(--text-muted); font-size: 13px; margin-top: 0;">Leave blank for a random burner ID.</p>
         <input type="text" id="customIdInput" class="onboard-input" placeholder="e.g. ghost99" maxlength="12">
         <div class="privacy-box" style="text-align: left; margin-bottom: 20px;">
             <strong>Crucial Warning:</strong> If you clear your browser cache, this username will be permanently locked. No one can ever recover it.
@@ -203,7 +212,7 @@
             </label>
         </div>
         
-        <button class="btn-secondary" onclick="document.getElementById('settingsModal').style.display='none'; document.getElementById('instructionsModal').style.display='flex'">Instructions</button>
+        <button class="btn-secondary" onclick="document.getElementById('settingsModal').style.display='none'; document.getElementById('instructionsModal').style.display='flex'">📖 View Instructions</button>
         <button class="btn-secondary" onclick="document.getElementById('settingsModal').style.display='none'; document.getElementById('privacyPolicyModal').style.display='flex'">View Privacy Policy</button>
         
         <button class="btn-danger" id="panicWipeTarget" style="margin-top: 15px;" onclick="panicWipe()">PANIC WIPE</button>
@@ -244,7 +253,7 @@
         <div class="sidebar-header-top">
             <h2 style="margin:0;">NoTrace</h2>
             <div style="display:flex; gap:5px;">
-                <button class="icon-btn" id="settingsBtnTarget" onclick="document.getElementById('settingsModal').style.display='flex'; if(tutStep===5) nextTut();">
+                <button class="icon-btn" id="settingsBtnTarget" onclick="document.getElementById('settingsModal').style.display='flex';">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </button>
                 <button class="icon-btn close-sidebar-btn" onclick="toggleSidebar()">
@@ -299,15 +308,9 @@
     
     <div class="input-area" id="inputArea" style="display:none;">
         <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,.pdf,.txt,.zip">
-        
 
-        <!-- Commenting out / disabling the send file button for now -->
-        <!-- <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Send File (<5MB)"> -->
-            <!-- <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> -->
-        <!-- </button> -->
-        
         <div class="input-wrapper" id="msgInputTarget">
-            <input type="text" id="msgInput" placeholder="Message..." onkeypress="if(event.key === 'Enter') sendMsg()" oninput="emitTyping()">
+            <textarea id="msgInput" placeholder="Message..." rows="1" onkeydown="handleInputKey(event)" oninput="emitTyping(); autoGrow(this)"></textarea>
             <button class="icon-btn burn-toggle" id="burnToggleBtn" onclick="toggleBurnMode()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"></path></svg>
             </button>
@@ -352,95 +355,98 @@
     const randStr = len => Array.from(crypto.getRandomValues(new Uint8Array(len))).map(b=>b.toString(36).padStart(2,'0')).join('').substring(0,len);
     const formatTime = ts => new Date(ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
-    /* ==== TUTORIAL SYSTEM ==== */
-    let tutStep = 0;
-    const tutSteps = [
-        { target: '#onboardBoxTarget', title: 'Welcome to NoTrace!', text: 'Click generate for random username.', pos: 'top' },
-        { target: '#addFriendTarget', title: 'Add a Friend', text: 'To start testing, enter the username "friend" here and click Add.', pos: 'bottom' },
-        { target: '#msgInputTarget', title: 'Send a Message', text: 'Type a message here. Everything is End-to-End Encrypted so the server sees absolutely nothing.', pos: 'top' },
-        { target: '#burnToggleBtn', title: 'Burn Mode', text: 'Click the flame to toggle Burn Mode. Messages will dissolve and self-destruct after they are read.', pos: 'top' },
-        { target: '#ghostToggleBtn', title: 'Ghost Mode', text: 'Click the ghost to blur all messages. Great for hiding your screen from shoulder-surfers.', pos: 'top' },
-        { target: '#settingsBtnTarget', title: 'Privacy Settings', text: 'Click the settings menu to tweak read receipts or access the PANIC WIPE.', pos: 'bottom' },
-        { target: '#settingsModalTarget', title: 'Panic Wipe', text: 'If you ever need to vanish, clicking PANIC WIPE destroys your identity from the server and wipes your local device instantly.', pos: 'top' }
-    ];
-
-    function runTutorial() {
-        if(localStorage.getItem('nt_tut_done')) return;
-        document.getElementById('tutOverlay').style.display = 'block';
-        showTutStep(0);
-    }
-
-    function showTutStep(idx) {
-        document.querySelectorAll('.tut-highlight').forEach(el => el.classList.remove('tut-highlight'));
-        if(idx >= tutSteps.length) { endTutorial(); return; }
-        
-        const step = tutSteps[idx];
-        const el = document.querySelector(step.target);
-
-        if(!el || el.offsetParent === null) {
-            setTimeout(() => showTutStep(idx), 500);
-            return;
-        }
-
-        el.classList.add('tut-highlight');
-        const box = document.getElementById('tutorialBox');
-        document.getElementById('tutTitle').innerText = step.title;
-        document.getElementById('tutText').innerText = step.text;
-        
-        const nextBtn = document.getElementById('tutNextBtn');
-        if(idx === tutSteps.length - 1) {
-            nextBtn.innerText = "Done";
+    /* ==== CHAT INPUT AUTOGROW & HOTKEYS ==== */
+    function autoGrow(el) {
+        el.style.height = '46px'; 
+        let newHeight = el.scrollHeight;
+        if (newHeight > 120) newHeight = 120;
+        el.style.height = newHeight + 'px';
+        if (newHeight > 50) {
+            el.style.borderRadius = '12px';
         } else {
-            nextBtn.innerText = "Next";
+            el.style.borderRadius = '20px';
         }
+    }
 
-        box.style.display = 'block';
+    function handleInputKey(event) {
+        const isMobile = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 768;
+        if (event.key === 'Enter') {
+            if (isMobile) {
+                // Let native mobile keyboard handle newlines
+                return;
+            } else {
+                // On PC: Shift+Enter creates a new line, Enter alone sends the message
+                if (!event.shiftKey) {
+                    event.preventDefault();
+                    sendMsg();
+                }
+            }
+        }
+    }
+    /* ======================================= */
 
-        const rect = el.getBoundingClientRect();
+    /* ==== CLIENT-SIDE BOT INJECTION ==== */
+    async function injectBotOnboarding() {
+        const botId = 'notrace_bot';
+        let friends = JSON.parse(localStorage.getItem('nt_friends') || '[]');
+        if (!friends.includes(botId)) { friends.unshift(botId); localStorage.setItem('nt_friends', JSON.stringify(friends)); }
         
-        // Ensure horizontal stays strictly inside window
-        let leftPos = rect.left + (rect.width / 2) - (box.offsetWidth / 2);
-        if (leftPos < 10) leftPos = 10;
-        if (leftPos + box.offsetWidth > window.innerWidth - 10) leftPos = window.innerWidth - box.offsetWidth - 10;
+        const svgBurn = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;vertical-align:text-bottom;display:inline-block;color:var(--burn);"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"></path></svg>';
+        const svgGhost = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;vertical-align:text-bottom;display:inline-block;color:var(--text);"><path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"></path></svg>';
+        const svgTrash = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;vertical-align:text-bottom;display:inline-block;color:var(--danger);"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+        const svgSettings = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;vertical-align:text-bottom;display:inline-block;color:var(--text-muted);"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>';
 
-        // Calculate initial vertical based on pref
-        let topPos = step.pos === 'bottom' ? rect.bottom + 15 : rect.top - box.offsetHeight - 15;
-
-        // Strict clamp algorithm - If pushed off bottom, try above
-        if (topPos + box.offsetHeight > window.innerHeight - 10) {
-            topPos = rect.top - box.offsetHeight - 15;
-        }
+        const botMsgs = [
+            { text: "Welcome to NoTrace.", burn: false },
+            { text: `${svgBurn} This message is set to self-destruct. The 30-second timer started the moment you opened this chat. You can send your own burning messages by toggling the flame icon below.`, burn: true, burnTimeout: 30 },
+            { text: `${svgGhost} Try clicking the ghost icon next to the send button. It blurs all messages to protect you from shoulder-surfers in public. Just hover over a message (or tap on mobile) to reveal it.`, burn: false },
+            { text: `${svgTrash} Double tap any message to unsend.`, burn: false },
+            { text: `Open settings (${svgSettings}) -> click Panic Wipe to wipe your entire identity from this device and the server forever.`, burn: false },
+            { text: "Go ahead and send me a message to test the encryption! I will echo it right back to you.", burn: false }
+        ];
         
-        // If pushed off top, try below
-        if (topPos < 10) {
-            topPos = rect.bottom + 15;
+        for (let i = 0; i < botMsgs.length; i++) {
+            if (activeChat === botId) {
+                document.getElementById('typingInd').style.opacity = '1';
+            }
+            
+            await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000));
+            
+            if (activeChat === botId) {
+                document.getElementById('typingInd').style.opacity = '0';
+            }
+
+            const now = Date.now();
+            const msgObj = { 
+                id: randStr(10), 
+                type: 'recv', 
+                text: botMsgs[i].text, 
+                timestamp: now, 
+                status: 'seen', 
+                burn: botMsgs[i].burn, 
+                burnTimeout: botMsgs[i].burnTimeout || 0 
+            };
+            
+            if (msgObj.burn && activeChat === botId) msgObj.seenAt = now;
+
+            let history = JSON.parse(localStorage.getItem('nt_chat_' + botId) || '[]');
+            history.push(msgObj);
+            localStorage.setItem('nt_chat_' + botId, JSON.stringify(history));
+
+            if (activeChat === botId) {
+                renderMessages(botId);
+                playDing();
+            } else {
+                let unread = JSON.parse(localStorage.getItem('nt_unread') || '{}');
+                unread[botId] = (unread[botId] || 0) + 1;
+                localStorage.setItem('nt_unread', JSON.stringify(unread));
+                loadFriendList(); 
+                updateGlobalBadge();
+                playDing();
+            }
         }
-
-        // Absolute fail-safe if element is too massive (clamp to screen edges)
-        if (topPos + box.offsetHeight > window.innerHeight - 10) {
-            topPos = window.innerHeight - box.offsetHeight - 10;
-        }
-        if (topPos < 10) {
-            topPos = 10;
-        }
-
-        box.style.top = topPos + 'px';
-        box.style.left = leftPos + 'px';
     }
-
-    function nextTut() { tutStep++; showTutStep(tutStep); }
-    
-    function skipTut() {
-        if(confirm("Are you sure you want to skip the onboarding tour?")) endTutorial();
-    }
-
-    function endTutorial() {
-        localStorage.setItem('nt_tut_done', 'true');
-        document.getElementById('tutOverlay').style.display = 'none';
-        document.getElementById('tutorialBox').style.display = 'none';
-        document.querySelectorAll('.tut-highlight').forEach(el => el.classList.remove('tut-highlight'));
-    }
-    /* ======================== */
+    /* ================================== */
 
 
     function showToast(msg, type="info") {
@@ -467,7 +473,7 @@
     }
 
     window.addEventListener('focus', () => {
-        if (activeChat && userPrivacy.readReceipts) socket.emit('mark_seen', { sender_id: myId, target_id: activeChat });
+        if (activeChat && activeChat !== 'notrace_bot' && userPrivacy.readReceipts) socket.emit('mark_seen', { sender_id: myId, target_id: activeChat });
     });
 
     socket.on('connect', () => {
@@ -484,7 +490,6 @@
 
         if (!myId || !storedKeys) {
             document.getElementById('onboardModal').style.display = 'flex';
-            runTutorial(); 
         } else { 
             myKeys = JSON.parse(storedKeys); 
             finalizeInit();
@@ -499,6 +504,7 @@
             if(inputVal.length < 3 || inputVal.length > 12 || !/^[a-z0-9]+$/.test(inputVal)) {
                 return showToast("ID must be 3-12 letters/numbers only.", "error");
             }
+            if (inputVal === 'notrace_bot') return showToast("ID Reserved.", "error");
             socket.emit('check_availability', { desired_id: inputVal });
         }
     }
@@ -515,9 +521,13 @@
         myKeys = { pub: await crypto.subtle.exportKey("jwk", keyPair.publicKey), priv: await crypto.subtle.exportKey("jwk", keyPair.privateKey) };
         localStorage.setItem('nt_id', myId); localStorage.setItem('nt_token', myToken); localStorage.setItem('nt_keys', JSON.stringify(myKeys));
         document.getElementById('onboardModal').style.display = 'none';
-        finalizeInit();
         
-        if(!localStorage.getItem('nt_tut_done') && tutStep === 0) { setTimeout(nextTut, 500); }
+        if(!localStorage.getItem('nt_bot_injected')) {
+            injectBotOnboarding(); 
+            localStorage.setItem('nt_bot_injected', 'true');
+        }
+        
+        finalizeInit();
     }
 
     function finalizeInit() {
@@ -560,14 +570,12 @@
     function toggleBurnMode() {
         burnMode = !burnMode;
         document.getElementById('burnToggleBtn').classList.toggle('active', burnMode);
-        if(!localStorage.getItem('nt_tut_done') && tutStep === 3) setTimeout(nextTut, 300);
     }
 
     function toggleGhostMode() {
         ghostMode = !ghostMode;
         document.getElementById('ghostToggleBtn').style.color = ghostMode ? 'var(--primary)' : 'var(--text-muted)';
         ghostRevealed.clear(); renderMessages(activeChat);
-        if(!localStorage.getItem('nt_tut_done') && tutStep === 4) setTimeout(nextTut, 300);
     }
 
     function toggleSelectMode() {
@@ -593,6 +601,10 @@
 
     function handleMsgDblClick(msgId, isSent) {
         if (isSelectMode) return;
+
+        // Allows users to double-click a word to select/copy it without triggering the delete prompt
+        if (window.getSelection().toString().trim().length > 0) return; 
+
         if (isSent) { if(confirm("Unsend this message for everyone?")) execDelete(msgId, true); } 
         else { if(confirm("Delete this message locally?")) execDelete(msgId, false); }
     }
@@ -601,7 +613,7 @@
         let history = JSON.parse(localStorage.getItem('nt_chat_' + activeChat) || '[]');
         history = history.filter(m => m.id !== msgId);
         localStorage.setItem('nt_chat_' + activeChat, JSON.stringify(history));
-        if (remote) socket.emit('delete_message', { sender_id: myId, token: myToken, target_id: activeChat, msg_id: msgId });
+        if (remote && activeChat !== 'notrace_bot') socket.emit('delete_message', { sender_id: myId, token: myToken, target_id: activeChat, msg_id: msgId });
         renderMessages(activeChat);
     }
 
@@ -611,7 +623,7 @@
         let history = JSON.parse(localStorage.getItem('nt_chat_' + activeChat) || '[]');
         let remaining = [];
         history.forEach(m => {
-            if (selectedMsgs.has(m.id)) { if (m.type === 'sent') socket.emit('delete_message', { sender_id: myId, token: myToken, target_id: activeChat, msg_id: m.id }); } 
+            if (selectedMsgs.has(m.id)) { if (m.type === 'sent' && activeChat !== 'notrace_bot') socket.emit('delete_message', { sender_id: myId, token: myToken, target_id: activeChat, msg_id: m.id }); } 
             else { remaining.push(m); }
         });
         localStorage.setItem('nt_chat_' + activeChat, JSON.stringify(remaining));
@@ -620,7 +632,6 @@
 
     function panicWipe() {
         if(!confirm("WARNING: This permanently destroys your identity from the server and all local data. Proceed?")) return;
-        if(!localStorage.getItem('nt_tut_done')) endTutorial(); 
         socket.emit('destroy_identity', { public_id: myId, private_token: myToken });
         setTimeout(() => { localStorage.clear(); location.reload(); }, 100);
     }
@@ -738,18 +749,19 @@
         
         friends.forEach(f => {
             const div = document.createElement('div');
-            div.className = `friend-item ${activeChat === f ? 'active' : ''}`;
+            div.className = `friend-item ${activeChat === f ? 'active' : ''} ${f === 'notrace_bot' ? 'bot' : ''}`;
             const count = unread[f] || 0;
-            div.innerHTML = `<strong>${f}</strong> <span class="unread-badge ${count > 0 ? 'show' : ''}">${count}</span>`;
+            div.innerHTML = `<strong>${f === 'notrace_bot' ? 'NoTrace Bot' : f}</strong> <span class="unread-badge ${count > 0 ? 'show' : ''}">${count}</span>`;
             div.onclick = () => { if (window.innerWidth <= 768) toggleSidebar(); openChat(f); };
             fl.appendChild(div);
-            if (!friendKeys[f]) socket.emit('get_key', { target_id: f });
+            if (f !== 'notrace_bot' && !friendKeys[f]) socket.emit('get_key', { target_id: f });
         });
     }
 
     function requestAddFriend() {
         const target = document.getElementById('addFriendInput').value.trim().toLowerCase();
         if (target.length < 3 || target.length > 12 || target === myId) return showToast("Invalid ID length or self-add.", "error");
+        if (target === 'notrace_bot') return showToast("Bot is already added.", "info");
         socket.emit('check_user', { target_id: target });
     }
 
@@ -779,15 +791,19 @@
         document.getElementById('emptyState').style.display = 'none';
         document.getElementById('activeChatInfo').style.display = 'flex';
         document.getElementById('headerActions').style.display = 'flex';
-        document.getElementById('chatTitleName').innerText = target;
+        document.getElementById('chatTitleName').innerText = target === 'notrace_bot' ? 'NoTrace Bot' : target;
         document.getElementById('messages').style.display = 'flex';
         document.getElementById('inputArea').style.display = 'flex';
         
-        socket.emit('get_status', { target_id: target });
-        if(userPrivacy.readReceipts) socket.emit('mark_seen', { sender_id: myId, target_id: target });
-        renderMessages(target);
+        if (target !== 'notrace_bot') {
+            socket.emit('get_status', { target_id: target });
+            if(userPrivacy.readReceipts) socket.emit('mark_seen', { sender_id: myId, target_id: target });
+        } else {
+            const dot = document.getElementById('chatStatusDot'); const txt = document.getElementById('chatStatusText');
+            dot.classList.add('online'); txt.innerText = 'Online';
+        }
         
-        if(!localStorage.getItem('nt_tut_done') && tutStep === 1) { setTimeout(nextTut, 600); }
+        renderMessages(target);
     }
 
     function renderMessages(target) {
@@ -859,7 +875,7 @@
     }
 
     function emitTyping() { 
-        if (!activeChat || !userPrivacy.typingInd) return; 
+        if (!activeChat || !userPrivacy.typingInd || activeChat === 'notrace_bot') return; 
         socket.emit('typing', { sender_id: myId, target_id: activeChat }); 
     }
 
@@ -868,19 +884,29 @@
         if(!file || !activeChat) return;
         if(file.size > 5 * 1024 * 1024) return showToast("File > 5MB! Use OpenShare.", "error");
         
-        if (!friendKeys[activeChat]) {
-            socket.emit('get_key', { target_id: activeChat });
-            return showToast("Key missing. Try again in 2 seconds.", "error");
-        }
-
         const reader = new FileReader();
         reader.onload = async function(e) {
             const dataUrl = e.target.result;
             const ts = Date.now();
             const msgId = randStr(10);
             
-            const msgObj = { id: msgId, type: 'sent', text: dataUrl, isFile: true, fileName: file.name, timestamp: ts, status: 'sent', burn: burnMode, burnTimeout: 60 };
+            const msgObj = { id: msgId, type: 'sent', text: dataUrl, isFile: true, fileName: file.name, timestamp: ts, status: 'seen', burn: burnMode, burnTimeout: 60 };
             saveHistory(activeChat, msgObj);
+            
+            if (activeChat === 'notrace_bot') {
+                setTimeout(() => {
+                    const replyObj = { id: randStr(10), type: 'recv', text: `📁 File received: ${file.name}. (Local Simulation)`, timestamp: Date.now(), status: 'seen', burn: false };
+                    saveHistory('notrace_bot', replyObj);
+                    playDing();
+                }, 1000);
+                if(burnMode) toggleBurnMode();
+                return;
+            }
+
+            if (!friendKeys[activeChat]) {
+                socket.emit('get_key', { target_id: activeChat });
+                return showToast("Key missing. Try again in 2 seconds.", "error");
+            }
             
             try {
                 const ciphertext = await encryptMsg(dataUrl, friendKeys[activeChat]);
@@ -896,12 +922,9 @@
         const text = inp.value.trim();
         if (!text || !activeChat) return;
         
-        if (!friendKeys[activeChat]) {
-            socket.emit('get_key', { target_id: activeChat });
-            return showToast("Key missing. Establishing secure tunnel...", "info");
-        }
-
         inp.value = '';
+        autoGrow(inp); // Reset height after sending
+        
         const ts = Date.now();
         const msgId = randStr(10);
         
@@ -909,8 +932,28 @@
         let bTime = 60;
         if (wordCount > 200) bTime = 60 + Math.ceil((wordCount % 250)) * 60; 
 
-        const msgObj = { id: msgId, type: 'sent', text: text, timestamp: ts, status: 'sent', burn: burnMode, burnTimeout: bTime };
+        const msgObj = { id: msgId, type: 'sent', text: text, timestamp: ts, status: 'seen', burn: burnMode, burnTimeout: bTime };
         saveHistory(activeChat, msgObj);
+        
+        if (activeChat === 'notrace_bot') {
+            document.getElementById('typingInd').style.opacity = '1';
+            setTimeout(() => {
+                document.getElementById('typingInd').style.opacity = '0';
+                const replyObj = { id: randStr(10), type: 'recv', text: `Echo: ${text}`, timestamp: Date.now(), status: 'seen', burn: false };
+                saveHistory('notrace_bot', replyObj);
+                playDing();
+            }, 1000);
+            if(burnMode) toggleBurnMode();
+            return;
+        }
+        
+        if (!friendKeys[activeChat]) {
+            socket.emit('get_key', { target_id: activeChat });
+            return showToast("Key missing. Establishing secure tunnel...", "info");
+        }
+        
+        msgObj.status = 'sent';
+        localStorage.setItem('nt_chat_' + activeChat, JSON.stringify(JSON.parse(localStorage.getItem('nt_chat_' + activeChat))));
         
         try {
             const ciphertext = await encryptMsg(text, friendKeys[activeChat]);
@@ -921,14 +964,12 @@
         }
         
         if(burnMode) toggleBurnMode();
-        
-        if(!localStorage.getItem('nt_tut_done') && tutStep === 2) { setTimeout(nextTut, 500); }
     }
 
     socket.on('key_response', data => { friendKeys[data.target_id] = data.public_key; });
     
     socket.on('status_update', data => {
-        if (data.id === activeChat) {
+        if (data.id === activeChat && activeChat !== 'notrace_bot') {
             const dot = document.getElementById('chatStatusDot'); const txt = document.getElementById('chatStatusText');
             if (data.status === 'online') { dot.classList.add('online'); txt.innerText = 'Online'; }
             else { dot.classList.remove('online'); txt.innerText = 'Offline'; }
@@ -936,7 +977,7 @@
     });
 
     socket.on('is_typing', data => {
-        if (data.sender_id === activeChat && userPrivacy.typingInd) {
+        if (data.sender_id === activeChat && userPrivacy.typingInd && activeChat !== 'notrace_bot') {
             const ind = document.getElementById('typingInd');
             ind.style.opacity = '1'; clearTimeout(typingTimer);
             typingTimer = setTimeout(() => ind.style.opacity = '0', 2000);

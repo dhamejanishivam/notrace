@@ -51,9 +51,6 @@ def admin_stats():
     # 1. Check for the secret key in the URL parameters
     provided_key = request.args.get('key')
     
-    if provided_key=="error_@12345678":
-        return "The page couldn't be loaded",404
-
     if not provided_key or provided_key != ADMIN_SECRET_KEY:
         # Return a generic 404 to pretend this page doesn't even exist if the key is wrong
         return "Not Found", 404
